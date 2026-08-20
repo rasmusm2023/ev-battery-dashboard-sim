@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EX30 · Live Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #12151a;
+        --muted: #5c6670;
+        --panel: rgba(255, 255, 255, 0.72);
+        --line: rgba(18, 21, 26, 0.1);
+        --ok: #1a9f6e;
+        --warn: #d97706;
+        --danger: #dc3d3d;
+        --accent: #0b6e6a;
+        --accent-deep: #084e4b;
+        --glow: rgba(11, 110, 106, 0.28);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Outfit, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(ellipse 80% 50% at 10% -10%, #c8ebe6 0%, transparent 55%),
+          radial-gradient(ellipse 70% 45% at 100% 0%, #d7e3f0 0%, transparent 50%),
+          linear-gradient(165deg, #eef2f5 0%, #dfe6ec 45%, #cfd8e0 100%);
+      }
+
+      .shell {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 20px 40px;
+      }
+
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+
+      .brand {
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 1;
+      }
+
+      .brand span {
+        color: var(--accent);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .status::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ok);
+        box-shadow: 0 0 0 4px rgba(26, 159, 110, 0.2);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.15);
+        }
+      }
+
+      .dash {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 20px;
+      }
+
+      @media (max-width: 760px) {
+        .dash {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 18px 40px rgba(18, 21, 26, 0.06);
+      }
+
+      .panel h2 {
+        margin: 0 0 4px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .gauge-wrap {
+        display: grid;
+        place-items: center;
+        padding: 12px 0 8px;
+      }
+
+      .gauge {
+        --level: 55;
+        --color: var(--ok);
+        width: min(260px, 70vw);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: conic-gradient(
+          var(--color) calc(var(--level) * 1%),
+          rgba(18, 21, 26, 0.08) 0
+        );
+        display: grid;
+        place-items: center;
+        position: relative;
+        transition: background 0.45s ease;
+        animation: gaugeIn 0.8s ease both;
+      }
+
+      .gauge::before {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border-radius: 50%;
+        background: linear-gradient(160deg, #f7fafb, #e8eef3);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
+
+      .gauge-inner {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+      }
+
+      .bat-num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: clamp(2.6rem, 8vw, 3.4rem);
+        font-weight: 500;
+        letter-spacing: -0.05em;
+        line-height: 1;
+      }
+
+      .bat-num small {
+        font-size: 0.45em;
+        color: var(--muted);
+      }
+
+      .bat-label {
+        margin-top: 6px;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      @keyframes gaugeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.92);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .metric {
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid var(--line);
+      }
+
+      .metric .k {
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .metric .v {
+        margin-top: 4px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.35rem;
+        font-weight: 500;
+      }
+
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        height: 100%;
+      }
+
+      .trip-log {
+        flex: 1;
+        min-height: 160px;
+        max-height: 220px;
+        overflow: auto;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(18, 21, 26, 0.04);
+        border: 1px solid var(--line);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.78rem;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+
+      .trip-log .line {
+        animation: fadeSlide 0.35s ease both;
+      }
+
+      @keyframes fadeSlide {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .actions {
+        display: grid;
+        gap: 10px;
+      }
+
+      button {
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 12px;
+        padding: 14px 18px;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s;
+      }
+
+      button:active:not(:disabled) {
+        transform: scale(0.98);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 10px 24px var(--glow);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: var(--accent-deep);
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+
+      .btn-ghost:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .alert {
+        grid-column: 1 / -1;
+        display: none;
+        margin-top: 4px;
+        padding: 20px 22px;
+        border-radius: 18px;
+        border: 1px solid rgba(220, 61, 61, 0.35);
+        background:
+          linear-gradient(135deg, rgba(220, 61, 61, 0.1), rgba(255, 255, 255, 0.65));
+        animation: alertIn 0.5s ease both;
+      }
+
+      .alert.visible {
+        display: block;
+      }
+
+      @keyframes alertIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .alert h3 {
+        margin: 0 0 6px;
+        font-size: 1.15rem;
+        color: var(--danger);
+      }
+
+      .alert p {
+        margin: 0 0 14px;
+        color: var(--muted);
+      }
+
+      .chargers {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 8px;
+      }
+
+      .chargers li {
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: fadeSlide 0.4s ease both;
+      }
+
+      .chargers li:nth-child(2) {
+        animation-delay: 0.08s;
+      }
+
+      .chargers li:nth-child(3) {
+        animation-delay: 0.16s;
+      }
+
+      .pin {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: rgba(11, 110, 106, 0.12);
+        color: var(--accent);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      .charger-name {
+        font-weight: 600;
+      }
+
+      .charger-meta {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="brand">Volvo <span>EX30</span></div>
+        <div class="status" id="conn-status">Telemetri ansluten · Göteborg</div>
+      </header>
+
+      <div class="dash">
+        <section class="panel">
+          <h2>Batteri</h2>
+          <div class="gauge-wrap">
+            <div class="gauge" id="gauge" style="--level: 55; --color: var(--ok)">
+              <div class="gauge-inner">
+                <div class="bat-num"><span id="bat-val">55</span><small>%</small></div>
+                <div class="bat-label" id="bat-label">Normalt</div>
+              </div>
+            </div>
+          </div>
+          <div class="metrics">
+            <div class="metric">
+              <div class="k">Räckvidd</div>
+              <div class="v"><span id="range-val">275</span> km</div>
+            </div>
+            <div class="metric">
+              <div class="k">Kört</div>
+              <div class="v"><span id="driven-val">0</span> km</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel controls">
+          <h2>Körning</h2>
+          <div class="trip-log" id="trip-log">
+            <div class="line">Redo. Startbatteri 55%.</div>
+          </div>
+          <div class="actions">
+            <button class="btn-primary" id="btn-auto" onclick="startAutoDrive()">
+              Starta resa (auto)
+            </button>
+            <button class="btn-ghost" id="btn-step" onclick="driveStep(10)">
+              Kör 10 km
+            </button>
+          </div>
+        </section>
+
+        <section class="alert" id="warning">
+          <h3>Låg batterinivå</h3>
+          <p>Under 20%. Söker laddstationer nära din position…</p>
+          <ul class="chargers" id="charger-list"></ul>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const KM_PER_PERCENT = 5;
+      const STEP_KM = 10;
+      const START_BATTERY = 55;
+      const GOT_LAT = 57.7088;
+      const GOT_LON = 11.9745;
+
+      let battery = START_BATTERY;
+      let driven = 0;
+      let lat = GOT_LAT;
+      let lon = GOT_LON;
+      let driving = false;
+      let warned = false;
+
+      const fallbackChargers = [
+        { title: "Göteborg Centralstation", town: "Göteborg" },
+        { title: "Lindholmen Science Park", town: "Göteborg" },
+        { title: "Nordstan P-hus", town: "Göteborg" },
+      ];
+
+      function batteryColor(level) {
+        if (level < 20) return "var(--danger)";
+        if (level < 40) return "var(--warn)";
+        return "var(--ok)";
+      }
+
+      function batteryLabel(level) {
+        if (level < 20) return "Kritiskt";
+        if (level < 40) return "Lågt";
+        return "Normalt";
+      }
+
+      function updateUI() {
+        const gauge = document.getElementById("gauge");
+        document.getElementById("bat-val").textContent = Math.round(battery);
+        document.getElementById("range-val").textContent = Math.round(
+          battery * KM_PER_PERCENT
+        );
+        document.getElementById("driven-val").textContent = Math.round(driven);
+        document.getElementById("bat-label").textContent = batteryLabel(battery);
+        gauge.style.setProperty("--level", Math.max(0, battery));
+        gauge.style.setProperty("--color", batteryColor(battery));
+      }
+
+      function logLine(text) {
+        const log = document.getElementById("trip-log");
+        const line = document.createElement("div");
+        line.className = "line";
+        line.textContent = text;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      async function fetchChargers() {
+        try {
+          const url =
+            `https://api.openchargemap.io/v3/poi/?output=json` +
+            `&latitude=${lat}&longitude=${lon}&maxresults=3&compact=true&verbose=false`;
+          const res = await fetch(url, {
+            headers: { "User-Agent": "MobilityDemoApp" },
+          });
+          if (!res.ok) throw new Error("API error");
+          const data = await res.json();
+          if (!Array.isArray(data) || data.length === 0) throw new Error("empty");
+          return data.map((item) => ({
+            title: item?.AddressInfo?.Title || "Okänd laddare",
+            town: item?.AddressInfo?.Town || "",
+          }));
+        } catch {
+          return fallbackChargers;
+        }
+      }
+
+      async function showWarning() {
+        if (warned) return;
+        warned = true;
+        const alert = document.getElementById("warning");
+        const list = document.getElementById("charger-list");
+        alert.classList.add("visible");
+        logLine("⚠ VARNING: batteri under 20% — söker laddare…");
+
+        const chargers = await fetchChargers();
+        list.innerHTML = "";
+        chargers.forEach((c, i) => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <div class="pin">${i + 1}</div>
+            <div>
+              <div class="charger-name">${c.title}</div>
+              <div class="charger-meta">${c.town || "Närliggande"}</div>
+            </div>`;
+          list.appendChild(li);
+        });
+        logLine(`Hittade ${chargers.length} laddstationer.`);
+      }
+
+      async function driveStep(distanceKm = STEP_KM) {
+        if (battery <= 0) return;
+
+        const used = distanceKm / KM_PER_PERCENT;
+        battery = Math.max(0, battery - used);
+        driven += distanceKm;
+        lat += distanceKm * 0.001;
+        lon += distanceKm * 0.001;
+
+        updateUI();
+        logLine(
+          `+${distanceKm} km → ${battery.toFixed(1)}% · räckvidd ${Math.round(
+            battery * KM_PER_PERCENT
+          )} km`
+        );
+
+        if (battery < 20) {
+          await showWarning();
+          stopAutoDrive();
+        }
+      }
+
+      let autoTimer = null;
+
+      function startAutoDrive() {
+        if (driving || battery <= 0) return;
+        driving = true;
+        document.getElementById("btn-auto").disabled = true;
+        document.getElementById("btn-step").disabled = true;
+        logLine("Auto-körning startad…");
+
+        autoTimer = setInterval(async () => {
+          if (battery < 20 || battery <= 0) {
+            stopAutoDrive();
+            return;
+          }
+          await driveStep(STEP_KM);
+        }, 700);
+      }
+
+      function stopAutoDrive() {
+        driving = false;
+        if (autoTimer) {
+          clearInterval(autoTimer);
+          autoTimer = null;
+        }
+        document.getElementById("btn-auto").disabled = battery <= 0;
+        document.getElementById("btn-step").disabled = battery <= 0;
+        if (battery < 20) {
+          document.getElementById("btn-auto").textContent = "Resa avslutad";
+        }
+      }
+
+      updateUI();
+    </script>
+  </body>
+</html>
