@@ -11,6 +11,18 @@
       rel="stylesheet"
     />
     <style>
+      @property --level {
+        syntax: "<number>";
+        inherits: false;
+        initial-value: 55;
+      }
+
+      @property --color {
+        syntax: "<color>";
+        inherits: false;
+        initial-value: #1a9f6e;
+      }
+
       :root {
         --ink: #12151a;
         --muted: #5c6670;
@@ -130,7 +142,7 @@
 
       .gauge {
         --level: 55;
-        --color: var(--ok);
+        --color: #1a9f6e;
         width: min(260px, 70vw);
         aspect-ratio: 1;
         border-radius: 50%;
@@ -141,8 +153,14 @@
         display: grid;
         place-items: center;
         position: relative;
-        transition: background 0.45s ease;
+        transition:
+          --level 1.05s cubic-bezier(0.22, 1, 0.36, 1),
+          --color 1.1s ease;
         animation: gaugeIn 0.8s ease both;
+      }
+
+      .gauge.is-on {
+        animation: batteryBreath 2.4s ease-in-out infinite;
       }
 
       .gauge::before {
@@ -166,6 +184,12 @@
         font-weight: 500;
         letter-spacing: -0.05em;
         line-height: 1;
+        font-variant-numeric: tabular-nums;
+        transition: color 0.8s ease;
+      }
+
+      .gauge.is-on .bat-num {
+        color: color-mix(in srgb, var(--color) 70%, var(--ink));
       }
 
       .bat-num small {
@@ -187,6 +211,20 @@
         to {
           opacity: 1;
           transform: scale(1);
+        }
+      }
+
+      @keyframes batteryBreath {
+        0%,
+        100% {
+          filter: brightness(1);
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--color) 0%, transparent);
+        }
+        50% {
+          filter: brightness(1.07);
+          box-shadow:
+            0 0 26px 4px color-mix(in srgb, var(--color) 42%, transparent),
+            0 0 48px 8px color-mix(in srgb, var(--color) 18%, transparent);
         }
       }
 
@@ -216,6 +254,7 @@
         font-family: "JetBrains Mono", monospace;
         font-size: 1.35rem;
         font-weight: 500;
+        font-variant-numeric: tabular-nums;
       }
 
       .controls {
@@ -268,7 +307,38 @@
         border-radius: 12px;
         padding: 14px 18px;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
         transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s;
+      }
+
+      button .btn-icon {
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        width: 1.15em;
+        height: 1.15em;
+      }
+
+      button .btn-icon svg {
+        width: 100%;
+        height: 100%;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      button .btn-icon svg .filled {
+        fill: currentColor;
+        stroke: none;
+      }
+
+      button .btn-label {
+        line-height: 1;
       }
 
       button:active:not(:disabled) {
@@ -288,6 +358,16 @@
 
       .btn-primary:hover:not(:disabled) {
         background: var(--accent-deep);
+      }
+
+      .btn-danger {
+        background: var(--danger);
+        color: white;
+        box-shadow: 0 10px 24px rgba(220, 61, 61, 0.28);
+      }
+
+      .btn-danger:hover:not(:disabled) {
+        background: #b83232;
       }
 
       .btn-ghost {
@@ -391,14 +471,14 @@
     <div class="shell">
       <header>
         <div class="brand">Volvo <span>EX30</span></div>
-        <div class="status" id="conn-status">Telemetri ansluten · Göteborg</div>
+        <div class="status" id="conn-status">Bilen avstängd · Göteborg</div>
       </header>
 
       <div class="dash">
         <section class="panel">
           <h2>Batteri</h2>
           <div class="gauge-wrap">
-            <div class="gauge" id="gauge" style="--level: 55; --color: var(--ok)">
+            <div class="gauge" id="gauge" style="--level: 55; --color: #1a9f6e">
               <div class="gauge-inner">
                 <div class="bat-num"><span id="bat-val">55</span><small>%</small></div>
                 <div class="bat-label" id="bat-label">Normalt</div>
@@ -420,14 +500,44 @@
         <section class="panel controls">
           <h2>Körning</h2>
           <div class="trip-log" id="trip-log">
-            <div class="line">Redo. Startbatteri 55%.</div>
+            <div class="line">Bilen avstängd. Startbatteri 55%.</div>
           </div>
           <div class="actions">
-            <button class="btn-primary" id="btn-auto" onclick="startAutoDrive()">
-              Starta resa (auto)
+            <button class="btn-primary" id="btn-start" onclick="toggleCar()">
+              <span class="btn-icon" id="icon-start" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 3v9" />
+                  <path d="M7.5 6.2a7 7 0 1 0 9 0" />
+                </svg>
+              </span>
+              <span class="btn-label" id="label-start">Starta bilen</span>
             </button>
-            <button class="btn-ghost" id="btn-step" onclick="driveStep(10)">
-              Kör 10 km
+            <button class="btn-ghost" id="btn-auto" onclick="startAutoDrive()" disabled>
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path class="filled" d="M10 8.5v7l6-3.5z" />
+                </svg>
+              </span>
+              <span class="btn-label" id="label-auto">Starta resa</span>
+            </button>
+            <button class="btn-ghost" id="btn-step" onclick="driveStep(10)" disabled>
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 12h12" />
+                  <path d="M12 6l6 6-6 6" />
+                  <path d="M4 7v10" />
+                </svg>
+              </span>
+              <span class="btn-label">Kör 10 km</span>
+            </button>
+            <button class="btn-ghost" id="btn-charge" onclick="toggleCharge()">
+              <span class="btn-icon" id="icon-charge" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M13 2 7 13h5l-1 9 6-11h-5l1-9z" />
+                </svg>
+              </span>
+              <span class="btn-label" id="label-charge">Ladda bilen</span>
             </button>
           </div>
         </section>
@@ -451,8 +561,21 @@
       let driven = 0;
       let lat = GOT_LAT;
       let lon = GOT_LON;
+      let carOn = false;
       let driving = false;
+      let charging = false;
       let warned = false;
+      const CHARGE_RATE = 10; // % per second → 0–100 på 10 s
+
+      let displayBattery = START_BATTERY;
+      let displayDriven = 0;
+      let animRaf = null;
+      let animStart = 0;
+      let animFromBattery = START_BATTERY;
+      let animToBattery = START_BATTERY;
+      let animFromDriven = 0;
+      let animToDriven = 0;
+      const ANIM_MS = 1000;
 
       const fallbackChargers = [
         { title: "Göteborg Centralstation", town: "Göteborg" },
@@ -461,9 +584,9 @@
       ];
 
       function batteryColor(level) {
-        if (level < 20) return "var(--danger)";
-        if (level < 40) return "var(--warn)";
-        return "var(--ok)";
+        if (level < 20) return "#dc3d3d";
+        if (level < 40) return "#d97706";
+        return "#1a9f6e";
       }
 
       function batteryLabel(level) {
@@ -472,16 +595,209 @@
         return "Normalt";
       }
 
-      function updateUI() {
-        const gauge = document.getElementById("gauge");
-        document.getElementById("bat-val").textContent = Math.round(battery);
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function paintNumbers(level, drivenKm) {
+        document.getElementById("bat-val").textContent = Math.round(level);
         document.getElementById("range-val").textContent = Math.round(
-          battery * KM_PER_PERCENT
+          level * KM_PER_PERCENT
         );
-        document.getElementById("driven-val").textContent = Math.round(driven);
-        document.getElementById("bat-label").textContent = batteryLabel(battery);
+        document.getElementById("driven-val").textContent = Math.round(drivenKm);
+        document.getElementById("bat-label").textContent = batteryLabel(level);
+      }
+
+      function tickAnim(now) {
+        const t = Math.min(1, (now - animStart) / ANIM_MS);
+        const e = easeOutCubic(t);
+        displayBattery = animFromBattery + (animToBattery - animFromBattery) * e;
+        displayDriven = animFromDriven + (animToDriven - animFromDriven) * e;
+        paintNumbers(displayBattery, displayDriven);
+
+        if (t < 1) {
+          animRaf = requestAnimationFrame(tickAnim);
+        } else {
+          displayBattery = animToBattery;
+          displayDriven = animToDriven;
+          paintNumbers(displayBattery, displayDriven);
+          animRaf = null;
+        }
+      }
+
+      function updateUI({ immediate = false } = {}) {
+        const gauge = document.getElementById("gauge");
         gauge.style.setProperty("--level", Math.max(0, battery));
         gauge.style.setProperty("--color", batteryColor(battery));
+
+        if (immediate) {
+          if (animRaf) cancelAnimationFrame(animRaf);
+          animRaf = null;
+          displayBattery = battery;
+          displayDriven = driven;
+          paintNumbers(displayBattery, displayDriven);
+          return;
+        }
+
+        if (animRaf) cancelAnimationFrame(animRaf);
+        animFromBattery = displayBattery;
+        animToBattery = battery;
+        animFromDriven = displayDriven;
+        animToDriven = driven;
+        animStart = performance.now();
+        animRaf = requestAnimationFrame(tickAnim);
+      }
+
+      function setCarAlive(on) {
+        document.getElementById("gauge").classList.toggle("is-on", on);
+      }
+
+      const ICONS = {
+        powerOn: `<svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M7.5 6.2a7 7 0 1 0 9 0"/></svg>`,
+        powerOff: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8"/></svg>`,
+        charge: `<svg viewBox="0 0 24 24"><path d="M13 2 7 13h5l-1 9 6-11h-5l1-9z"/></svg>`,
+        stopCharge: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>`,
+      };
+
+      function syncControls() {
+        const dead = battery <= 0;
+        const full = battery >= 100;
+        const startBtn = document.getElementById("btn-start");
+        const chargeBtn = document.getElementById("btn-charge");
+
+        startBtn.disabled = (dead && !carOn) || charging;
+        document.getElementById("btn-auto").disabled =
+          !carOn || driving || dead || charging;
+        document.getElementById("btn-step").disabled =
+          !carOn || driving || dead || charging;
+        chargeBtn.disabled = driving || (full && !charging);
+
+        const autoLabel = document.getElementById("label-auto");
+        if (driving) {
+          autoLabel.textContent = "Resa pågår…";
+        } else if (dead) {
+          autoLabel.textContent = "Batteri slut";
+        } else {
+          autoLabel.textContent = "Starta resa";
+        }
+
+        document.getElementById("label-start").textContent = carOn
+          ? "Stäng av bilen"
+          : "Starta bilen";
+        document.getElementById("icon-start").innerHTML = carOn
+          ? ICONS.powerOff
+          : ICONS.powerOn;
+        startBtn.classList.toggle("btn-primary", !carOn);
+        startBtn.classList.toggle("btn-danger", carOn);
+
+        document.getElementById("label-charge").textContent = charging
+          ? "Avbryt laddning"
+          : "Ladda bilen";
+        document.getElementById("icon-charge").innerHTML = charging
+          ? ICONS.stopCharge
+          : ICONS.charge;
+      }
+
+      function updateConnStatus() {
+        const status = document.getElementById("conn-status");
+        if (charging) {
+          status.textContent = "Laddar · Göteborg";
+        } else if (!carOn) {
+          status.textContent = "Bilen avstängd · Göteborg";
+        } else if (driving) {
+          status.textContent = "Bilen igång · resa · Göteborg";
+        } else if (battery < 20) {
+          status.textContent = "Bilen igång · tomgång · låg batterinivå · Göteborg";
+        } else {
+          status.textContent = "Bilen igång · tomgång · Göteborg";
+        }
+      }
+
+      function clearLowBatteryWarning() {
+        if (battery >= 20 && warned) {
+          warned = false;
+          document.getElementById("warning").classList.remove("visible");
+        }
+      }
+
+      function toggleCharge() {
+        if (charging) stopCharge();
+        else startCharge();
+      }
+
+      let chargeRaf = null;
+      let chargeStartTime = 0;
+      let chargeFromLevel = 0;
+
+      function startCharge() {
+        if (charging || driving || battery >= 100) return;
+        charging = true;
+        chargeFromLevel = battery;
+        chargeStartTime = performance.now();
+        syncControls();
+        updateConnStatus();
+        logLine(`Laddning startad (${battery.toFixed(0)}% → 100%).`);
+
+        const tick = (now) => {
+          if (!charging) return;
+          const elapsedSec = (now - chargeStartTime) / 1000;
+          battery = Math.min(100, chargeFromLevel + elapsedSec * CHARGE_RATE);
+          clearLowBatteryWarning();
+          updateUI({ immediate: true });
+          syncControls();
+
+          if (battery >= 100) {
+            battery = 100;
+            updateUI({ immediate: true });
+            stopCharge(true);
+            return;
+          }
+          chargeRaf = requestAnimationFrame(tick);
+        };
+        chargeRaf = requestAnimationFrame(tick);
+      }
+
+      function stopCharge(completed = false) {
+        if (!charging && !chargeRaf) return;
+        charging = false;
+        if (chargeRaf) {
+          cancelAnimationFrame(chargeRaf);
+          chargeRaf = null;
+        }
+        syncControls();
+        updateConnStatus();
+        if (completed) {
+          logLine("Laddning klar — 100%.");
+        } else {
+          logLine(`Laddning avbruten — ${battery.toFixed(0)}%.`);
+        }
+      }
+
+      function toggleCar() {
+        if (carOn) {
+          stopCar();
+        } else {
+          startCar();
+        }
+      }
+
+      function startCar() {
+        if (carOn || battery <= 0) return;
+        carOn = true;
+        setCarAlive(true);
+        syncControls();
+        updateConnStatus();
+        logLine("Bilen startad — tomgång.");
+      }
+
+      function stopCar() {
+        if (!carOn) return;
+        if (driving) stopAutoDrive();
+        carOn = false;
+        setCarAlive(false);
+        syncControls();
+        updateConnStatus();
+        logLine("Bilen avstängd.");
       }
 
       function logLine(text) {
@@ -537,7 +853,7 @@
       }
 
       async function driveStep(distanceKm = STEP_KM) {
-        if (battery <= 0) return;
+        if (!carOn || battery <= 0) return;
 
         const used = distanceKm / KM_PER_PERCENT;
         battery = Math.max(0, battery - used);
@@ -554,42 +870,50 @@
 
         if (battery < 20) {
           await showWarning();
+          updateConnStatus();
+        }
+
+        if (battery <= 0) {
+          logLine("Batteriet är slut.");
           stopAutoDrive();
+          syncControls();
         }
       }
 
       let autoTimer = null;
 
       function startAutoDrive() {
-        if (driving || battery <= 0) return;
+        if (!carOn || driving || battery <= 0) return;
         driving = true;
-        document.getElementById("btn-auto").disabled = true;
-        document.getElementById("btn-step").disabled = true;
-        logLine("Auto-körning startad…");
+        syncControls();
+        updateConnStatus();
+        logLine("Resa startad…");
 
         autoTimer = setInterval(async () => {
-          if (battery < 20 || battery <= 0) {
+          if (!carOn || battery <= 0) {
             stopAutoDrive();
             return;
           }
           await driveStep(STEP_KM);
-        }, 700);
+        }, 900);
       }
 
       function stopAutoDrive() {
+        const wasDriving = driving;
         driving = false;
         if (autoTimer) {
           clearInterval(autoTimer);
           autoTimer = null;
         }
-        document.getElementById("btn-auto").disabled = battery <= 0;
-        document.getElementById("btn-step").disabled = battery <= 0;
-        if (battery < 20) {
-          document.getElementById("btn-auto").textContent = "Resa avslutad";
+        syncControls();
+        updateConnStatus();
+        if (wasDriving && carOn && battery <= 0) {
+          logLine("Resan avslutades — batteri slut.");
         }
       }
 
-      updateUI();
+      updateUI({ immediate: true });
+      syncControls();
     </script>
   </body>
 </html>
